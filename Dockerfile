@@ -1,4 +1,3 @@
-
 FROM maven:3.9-eclipse-temurin-17 AS build
 
 WORKDIR /app
@@ -12,7 +11,14 @@ COPY src src
 
 RUN ./mvnw clean package -DskipTests
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-noble
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      tesseract-ocr tesseract-ocr-eng \
+      libtesseract-dev libleptonica-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 
 WORKDIR /app
 
