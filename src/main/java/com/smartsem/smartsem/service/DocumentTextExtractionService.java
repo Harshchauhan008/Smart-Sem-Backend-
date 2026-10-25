@@ -21,6 +21,19 @@ public class DocumentTextExtractionService {
     public String extractText(Path filePath)
             throws IOException, TesseractException {
 
+        try {
+            return doExtractText(filePath);
+        } catch (Throwable e) {
+            // Shows the real OCR error in the Render logs.
+            System.err.println("OCR failed for " + filePath + ": " + e);
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    private String doExtractText(Path filePath)
+            throws IOException, TesseractException {
+
         String fileName = filePath.getFileName()
                 .toString()
                 .toLowerCase(Locale.ROOT);
