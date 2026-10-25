@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -82,8 +83,32 @@ public class TimetableExtractionController {
                         HttpStatus.NOT_FOUND,
                         "No timetable image was found. Please upload it again."));
 
-        return extractionService.extractTimetable(
-                semesterId,
-                latest.getFilePath());
+        try {
+            return extractionService.extractTimetable(
+                    semesterId,
+                    latest.getFilePath());
+        } catch (RuntimeException e) {
+            if (isQuotaError(e)) {
+                throw new ResponseStatusException(
+                        HttpStatus.TOO_MANY_REQUESTS,
+                        "AI usage limit reached. Please try again in a little while.",
+                        e);
+            }
+            throw e;
+        }
+    }
+
+    private boolean isQuotaError(Throwable t) {
+        while (t != null) {
+            String m = t.getMessage();
+
+            if (m != null && (m.contains("429")
+                    || m.contains("RESOURCE_EXHAUSTED")
+                    || m.toLowerCase(Locale.ROOT).contains("quota"))) {
+                return true;
+            }
+            t = t.getCause();
+        }
+        return false;
     }
 }
