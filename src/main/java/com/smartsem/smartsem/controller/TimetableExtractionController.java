@@ -1,4 +1,3 @@
-
 package com.smartsem.smartsem.controller;
 
 import com.smartsem.smartsem.entity.AcademicDocument;
@@ -12,6 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -70,15 +71,16 @@ public class TimetableExtractionController {
                 documentRepository.findBySemesterIdAndDocumentType(
                         semesterId, "TIMETABLE");
 
+        // The preview sends the image itself to Gemini, so it does not need
+        // OCR to have succeeded. It only needs the image file to still exist.
         AcademicDocument latest = documents.stream()
-                .filter(d -> "PROCESSED".equalsIgnoreCase(
-                        d.getProcessingStatus()))
                 .filter(d -> d.getFilePath() != null
                         && !d.getFilePath().isBlank())
+                .filter(d -> Files.exists(Path.of(d.getFilePath())))
                 .max(Comparator.comparing(AcademicDocument::getId))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "No processed timetable image was found."));
+                        "No timetable image was found. Please upload it again."));
 
         return extractionService.extractTimetable(
                 semesterId,
