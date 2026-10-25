@@ -1,4 +1,3 @@
-
 package com.smartsem.smartsem.service;
 
 import net.sourceforge.tess4j.Tesseract;
@@ -11,6 +10,7 @@ import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Locale;
@@ -89,11 +89,28 @@ public class DocumentTextExtractionService {
         graphics.dispose();
 
         Tesseract tesseract = new Tesseract();
-        tesseract.setDatapath(
-                "C:/Program Files/Tesseract-OCR/tessdata");
+        tesseract.setDatapath(resolveTessdataPath());
         tesseract.setLanguage("eng");
         tesseract.setPageSegMode(11);
 
-        return tesseract.doOCR(resized);
+        try {
+            return tesseract.doOCR(resized);
+        } catch (LinkageError e) {
+            // UnsatisfiedLinkError / NoClassDefFoundError: native Tesseract library missing
+            throw new IllegalStateException(
+                    "Text extraction is unavailable right now. Please try again later.", e);
+        }
+    }
+
+    private String resolveTessdataPath() {
+        String fromEnv = System.getenv("TESSDATA_PREFIX");
+        if (fromEnv != null && !fromEnv.isBlank()) {
+            return fromEnv;
+        }
+        String windowsPath = "C:/Program Files/Tesseract-OCR/tessdata";
+        if (new File(windowsPath).exists()) {
+            return windowsPath; // local development on Windows
+        }
+        return "/usr/share/tesseract-ocr/5/tessdata"; // Linux / Docker
     }
 }
